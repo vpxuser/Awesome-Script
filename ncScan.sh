@@ -13,6 +13,9 @@ HOST=$1
 # 端口列表
 IFS=',' read -r -a PORTS <<< "$2"
 
+# 过滤器
+FILTER=$3
+
 # 超时时间（秒）
 TIMEOUT=1
 
@@ -20,9 +23,11 @@ TIMEOUT=1
 test_port() {
     local port=$1
     if nc -z -w $TIMEOUT $HOST $port &> /dev/null; then
-        echo -en "Testing $HOST:$port... Connected\n"
+        echo -en "Testing $HOST:$port	Connected\n"
     else
-        echo -en "Testing $HOST:$port... Failed\n"
+        if [ "$FILTER" == "all" ]; then
+			echo -en "Testing $HOST:$port	Failed\n"
+		fi
     fi
 }
 
