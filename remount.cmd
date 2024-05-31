@@ -1,5 +1,26 @@
 @echo off
 
+chcp 65001 > nul
+
+if "%~1"=="" (
+    echo 使用说明:
+    echo.
+    echo 该脚本用于执行重新挂载 Android 系统盘操作。
+    echo.
+    echo 用法:
+    echo   remount.cmd [设备ID] [等待参数]
+    echo.
+    echo 参数说明:
+    echo   设备ID: 可选参数，指定要执行操作的设备ID。
+    echo   等待参数: 可选参数，当值为 "wait" 时，脚本将等待设备重启和启动完成。
+    echo.
+    echo 示例:
+    echo   remount.cmd emulator-5554 wait
+    echo.
+    echo 注意: 本脚本需要安装ADB工具并配置环境变量。
+    echo.
+)
+
 echo 正在列出所有设备...
 adb devices
 
