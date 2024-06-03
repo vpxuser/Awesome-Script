@@ -1,4 +1,4 @@
-# bash-script
+# awesome-script
 
 some script in work
 
