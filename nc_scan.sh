@@ -2,8 +2,8 @@
 
 # 检查是否提供了IP地址和端口列表
 if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Usage: $0 <target_host> <ports>"
-    echo "Example: $0 192.168.1.1 8080,443,9090,443-1000"
+    echo "Usage: $0 <target_host> <ports> [--debug]"
+    echo "Example: $0 192.168.1.1 8080,443,9090,443-1000 --debug"
     exit 1
 fi
 
@@ -13,8 +13,11 @@ HOST=$1
 # 端口列表
 IFS=',' read -r -a PORTS <<< "$2"
 
-# 过滤器
-FILTER=$3
+# 检查是否使用 --debug 参数
+DEBUG=false
+if [ "$3" == "--debug" ]; then
+    DEBUG=true
+fi
 
 # 超时时间（秒）
 TIMEOUT=1
@@ -25,9 +28,9 @@ test_port() {
     if nc -z -w $TIMEOUT $HOST $port &> /dev/null; then
         echo -en "Testing $HOST:$port	Connected\n"
     else
-        if [ "$FILTER" == "all" ]; then
-			echo -en "Testing $HOST:$port	Failed\n"
-		fi
+        if [ "$DEBUG" == true ]; then
+            echo -en "Testing $HOST:$port	Failed\n"
+        fi
     fi
 }
 

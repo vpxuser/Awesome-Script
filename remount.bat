@@ -1,108 +1,95 @@
 @echo off
-setlocal EnableDelayedExpansion
-chcp 65001 > nul
+setlocal enabledelayedexpansion
 
-if "%~1"=="" (
-    echo 使用说明:
-    echo.
-    echo 该脚本用于执行重新挂载 Android 系统盘操作。
-    echo.
-    echo 用法:
-    echo   remount.bat [设备ID] [等待参数]
-    echo.
-    echo 参数说明:
-    echo   设备ID: 可选参数，指定要执行操作的设备ID。
-    echo   等待参数: 可选参数，当值为 "wait" 时，脚本将等待设备重启和启动完成。
-    echo.
-    echo 示例:
-    echo   remount.bat emulator-5554 wait
-    echo.
-    echo 注意: 本脚本需要安装ADB工具并配置环境变量。
-    echo.
-)
+rem 初始化变量，控制是否执行 disable-verity
+set disable_verity=false
 
-echo 正在列出所有设备...
-adb devices
-
-set DEVICE_ID=%1
-set WAIT_PARAM=%2
-set SUCCESS=1
-set ADB_COMMAND=adb
-
-if not "%DEVICE_ID%"=="" (
-    set ADB_COMMAND=adb -s %DEVICE_ID%
-)
-
-REM 获取 ROOT 权限
-%ADB_COMMAND% root && (
-    echo 获取 ROOT 权限成功.
-) || (
-    echo 获取 ROOT 权限失败.
-    set SUCCESS=0
-)
-
-REM 禁用 Android 验证机制
-%ADB_COMMAND% disable-verity && (
-    echo 禁用 Android 验证机制成功.
-) || (
-    echo 禁用 Android 验证机制失败.
-    set SUCCESS=0
-)
-
-if "%WAIT_PARAM%"=="wait" (
-    REM 设备重启
-    %ADB_COMMAND% reboot && (
-        echo 设备重启成功.
-    ) || (
-        echo 设备重启失败.
-        set SUCCESS=0
+rem 检查参数
+:parse_args
+if "%1"=="-d" (
+    if "%2"=="" (
+        echo 请提供设备 ID.
+        goto :eof
     )
-
-    echo 等待设备重启...
-    timeout /t 10 > nul
-
-    echo 等待设备启动完成...
-    %ADB_COMMAND% wait-for-device && (
-        echo 设备启动完成.
-    ) || (
-        echo 等待设备失败.
-        set SUCCESS=0
-    )
-
-    :CHECK_BOOT_COMPLETED
-    %ADB_COMMAND% shell getprop sys.boot_completed | findstr /c:"1" > nul
-    if errorlevel 1 (
-        echo 设备尚未启动完成，等待中...
-        timeout /t 5 > nul
-        goto CHECK_BOOT_COMPLETED
-    ) else (
-        echo 设备已经启动完成.
-    )
-
-    REM 再次获取 ROOT 权限
-    %ADB_COMMAND% root && (
-        echo 获取 ROOT 权限成功.
-    ) || (
-        echo 获取 ROOT 权限失败.
-        set SUCCESS=0
-    )
+    set deviceid=%2
+    shift
+    shift
+    goto :parse_args
+) else if "%1"=="-f" (
+    set disable_verity=true
+    shift
+    goto :parse_args
 )
 
-REM 重新挂载系统盘
-%ADB_COMMAND% remount && (
-    echo 重新挂载系统盘成功.
-) || (
-    echo 重新挂载系统盘失败，尝试 mount 重新挂载 /system 分区...
-    %ADB_COMMAND% shell mount -o rw,remount /system && (
-        echo mount 挂载成功.
-    ) || (
-        echo mount 挂载失败.
-        set SUCCESS=0
-    )
+rem 检查 adb 工具是否在环境变量中
+adb devices >nul 2>&1
+if errorlevel 1 (
+    echo 未找到 adb，请确保 adb 工具已安装并添加到系统的环境变量中。
+    goto :eof
 )
 
-if "!SUCCESS!"=="1" (
-    echo 成功挂载系统盘.
+rem 检查设备是否连接
+adb -s %deviceid% get-state >nul 2>&1
+if errorlevel 1 (
+    echo 设备 %deviceid% 未连接，请检查设备是否正常连接并启用调试模式。
+    goto :eof
+)
+
+rem 尝试获取 root 权限
+echo 正在尝试获取设备 %deviceid% 的 root 权限...
+adb -s %deviceid% root
+
+rem 检查 root 权限是否成功
+adb -s %deviceid% shell "id | grep 'uid=0'" >nul 2>&1
+if errorlevel 1 (
+    echo 设备 %deviceid% 获取 root 权限失败。
+    goto :eof
 ) else (
-    echo 挂载系统盘失败.
+    echo 设备 %deviceid% 获取 root 权限成功！
 )
+
+rem 检查是否执行 disable-verity
+if "%disable_verity%"=="true" (
+    rem 尝试禁用 Android Verified Boot (disable-verity)
+    echo 正在禁用设备 %deviceid% 的 verified boot...
+    adb -s %deviceid% disable-verity
+
+    rem 提示用户重启设备
+    echo 设备 %deviceid% 的 verified boot 已禁用。请重启设备以使更改生效。
+    adb -s %deviceid% reboot
+
+    rem 等待设备重启
+    echo 等待设备重启完成...
+    adb -s %deviceid% wait-for-device
+
+    rem 再次获取 root 权限以继续操作
+    echo 获取 root 权限以继续 remount 操作...
+    adb -s %deviceid% root
+)
+
+rem 尝试重新挂载系统分区为读写模式
+echo 正在重新挂载设备 %deviceid% 的系统分区为读写模式...
+adb -s %deviceid% remount
+
+rem 检查是否成功 remount
+adb -s %deviceid% shell "mount | grep '/system.*rw'" >nul 2>&1
+if errorlevel 1 (
+    echo adb remount 失败，尝试使用 shell mount 进行挂载...
+
+    rem 使用 shell mount 尝试重新挂载为读写模式
+    adb -s %deviceid% shell "mount -o rw,remount /system"
+
+    rem 再次检查是否成功挂载
+    adb -s %deviceid% shell "mount | grep '/system.*rw'" >nul 2>&1
+    if errorlevel 1 (
+        echo 系统分区重新挂载为读写模式失败。
+        goto :eof
+    ) else (
+        echo 系统分区重新挂载为读写模式成功！
+    )
+) else (
+    echo 系统分区通过 adb remount 成功挂载为读写模式！
+)
+
+:end
+endlocal
