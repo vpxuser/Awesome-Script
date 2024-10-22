@@ -45,6 +45,13 @@ bash tcp_scan.sh 192.168.1.1 8080,443,9090,443-1000
 - 使用ldap协议爆破vCenter用户名和密码
 
 ```shell
-.\vcenter_brute.sh -h 127.0.0.1 -uf user_dict.txt -pf pass_dict.txt
+bash vcenter_brute.sh -h 127.0.0.1 -uf user_dict.txt -pf pass_dict.txt
 ```
 
+## write_gshark_rule.bat
+
+- 往gshark服务添加二次过滤规则
+
+```cmd
+.\write_gshark_rule.bat
+```
