@@ -67,3 +67,12 @@ bash vcenter_brute.sh -h 127.0.0.1 -uf user_dict.txt -pf pass_dict.txt
 ## force_use_proxy.js
 
 - 应用级代理注入的frida脚本
+
+## set_iptables_proxy.bat
+
+- 设置透明代理
+
+```cmd
+.\set_iptables_proxy.bat set -d 66aa897e -h 127.0.0.1 -p 8080
+```
+
