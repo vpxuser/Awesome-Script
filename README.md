@@ -55,3 +55,15 @@ bash vcenter_brute.sh -h 127.0.0.1 -uf user_dict.txt -pf pass_dict.txt
 ```cmd
 .\write_gshark_rule.bat
 ```
+
+## bypass_ssl_pinning.js
+
+- SSL Unpinning的frida脚本
+
+## inject_ca_certificate.js
+
+- CA证书注入的frida脚本
+
+## force_use_proxy.js
+
+- 应用级代理注入的frida脚本
