@@ -52,7 +52,7 @@ if %errorlevel% neq 0 (
 )
 
 :: 获取证书文件的 hash 值
-for /f "tokens=*" %%i in ('openssl x509 -noout -hash -in "%certFile%" 2^>nul') do (
+for /f "tokens=*" %%i in ('openssl x509 -noout -subject_hash_old -in "%certFile%" 2^>nul') do (
     set certHash=%%i
 )
 
